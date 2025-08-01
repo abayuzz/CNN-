@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深层CNN网络架构详解</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #e74c3c;
+            margin-top: 30px;
+            border-left: 4px solid #e74c3c;
+            padding-left: 15px;
+        }
+        h3 {
+            color: #8e44ad;
+            margin-top: 25px;
+        }
+        
+        /* 网络架构图 */
+        .network-diagram {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        
+        .layer {
+            display: inline-block;
+            vertical-align: top;
+            margin: 10px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .conv-block {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            min-width: 120px;
+        }
+        
+        .fc-block {
+            background: linear-gradient(45deg, #A8E6CF, #FFD93D);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            min-width: 120px;
+        }
+        
+        .arrow {
+            display: inline-block;
+            color: white;
+            font-size: 24px;
+            margin: 0 10px;
+            vertical-align: middle;
+        }
+        
+        .dimension {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        /* 数据流图 */
+        .data-flow {
+            background: #f8f9fa;
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .step {
+            background: white;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .step-number {
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        /* 参数表格 */
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .param-table th {
+            background: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        .param-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .param-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        /* 重点说明框 */
+        .highlight-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #ffd700;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #b8daff;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        /* 代码块 */
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        
+        .code-comment {
+            color: #68d391;
+        }
+        
+        /* 思维导图样式 */
+        .mindmap {
+            background: radial-gradient(circle, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            color: white;
+        }
+        
+        .central-node {
+            background: #ffd700;
+            color: #333;
+            padding: 20px;
+            border-radius: 50%;
+            text-align: center;
+            font-weight: bold;
+            margin: 20px auto;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        
+        .branch {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px;
+            border-left: 4px solid #ffd700;
+        }
+        
+        .sub-branch {
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 2px solid #fff;
+            font-size: 14px;
+        }
+        
+        /* 动画效果 */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            .network-diagram {
+                padding: 15px;
+            }
+            .layer {
+                display: block;
+                margin: 10px 0;
+            }
+            .arrow {
+                display: block;
+                transform: rotate(90deg);
+                margin: 10px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 深层CNN手势识别网络架构详解</h1>
+        
+        <!-- 网络整体架构图 -->
+        <h2>🏗️ 网络整体架构可视化</h2>
+        <div class="network-diagram">
+            <div class="layer">
+                <div class="conv-block pulse">
+                    <div>输入层</div>
+                    <div class="dimension">(3, 224, 224)</div>
+                    <small>RGB彩色图像</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="conv-block">
+                    <div>卷积块1</div>
+                    <div class="dimension">(32, 112, 112)</div>
+                    <small>基础特征提取</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="conv-block">
+                    <div>卷积块2</div>
+                    <div class="dimension">(64, 56, 56)</div>
+                    <small>中层特征提取</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="conv-block">
+                    <div>卷积块3</div>
+                    <div class="dimension">(128, 28, 28)</div>
+                    <small>高层特征提取</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="conv-block">
+                    <div>卷积块4</div>
+                    <div class="dimension">(256, 14, 14)</div>
+                    <small>语义特征提取</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="fc-block">
+                    <div>展平层</div>
+                    <div class="dimension">(50176,)</div>
+                    <small>4D→2D转换</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="fc-block">
+                    <div>全连接1</div>
+                    <div class="dimension">(512,)</div>
+                    <small>特征整合</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="fc-block">
+                    <div>全连接2</div>
+                    <div class="dimension">(256,)</div>
+                    <small>特征压缩</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="fc-block">
+                    <div>全连接3</div>
+                    <div class="dimension">(128,)</div>
+                    <small>特征精炼</small>
+                </div>
+            </div>
+            
+            <span class="arrow">→</span>
+            
+            <div class="layer">
+                <div class="fc-block pulse">
+                    <div>输出层</div>
+                    <div class="dimension">(3,)</div>
+                    <small>石头/剪刀/布</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- 思维导图 -->
+        <h2>🧭 CNN网络思维导图</h2>
+        <div class="mindmap">
+            <div class="central-node">
+                深层CNN<br>手势识别<br>网络
+            </div>
+            
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-around;">
+                <div class="branch" style="flex: 1; min-width: 250px;">
+                    <h4>🔍 特征提取部分 (卷积层)</h4>
+                    <div class="sub-branch">
+                        <strong>第1层:</strong> 边缘检测 (3→32通道)<br>
+                        检测图像中的线条、边缘等基础特征
+                    </div>
+                    <div class="sub-branch">
+                        <strong>第2层:</strong> 形状识别 (32→64通道)<br>
+                        组合边缘形成简单形状和纹理
+                    </div>
+                    <div class="sub-branch">
+                        <strong>第3层:</strong> 模式识别 (64→128通道)<br>
+                        识别复杂的模式和局部结构
+                    </div>
+                    <div class="sub-branch">
+                        <strong>第4层:</strong> 语义理解 (128→256通道)<br>
+                        理解手势的语义信息和整体结构
+                    </div>
+                </div>
+                
+                <div class="branch" style="flex: 1; min-width: 250px;">
+                    <h4>🎯 分类决策部分 (全连接层)</h4>
+                    <div class="sub-branch">
+                        <strong>FC1:</strong> 特征整合 (50176→512)<br>
+                        将所有卷积特征整合到一起
+                    </div>
+                    <div class="sub-branch">
+                        <strong>FC2:</strong> 特征压缩 (512→256)<br>
+                        压缩特征，去除冗余信息
+                    </div>
+                    <div class="sub-branch">
+                        <strong>FC3:</strong> 特征精炼 (256→128)<br>
+                        进一步精炼最重要的特征
+                    </div>
+                    <div class="sub-branch">
+                        <strong>输出:</strong> 最终分类 (128→3)<br>
+                        输出石头、剪刀、布的概率
+                    </div>
+                </div>
+                
+                <div class="branch" style="flex: 1; min-width: 250px;">
+                    <h4>⚙️ 优化技术</h4>
+                    <div class="sub-branch">
+                        <strong>BatchNorm:</strong> 批量归一化<br>
+                        加速训练，提高稳定性
+                    </div>
+                    <div class="sub-branch">
+                        <strong>Dropout:</strong> 随机失活<br>
+                        防止过拟合，提高泛化能力
+                    </div>
+                    <div class="sub-branch">
+                        <strong>ReLU:</strong> 激活函数<br>
+                        增加非线性，提升表达能力
+                    </div>
+                    <div class="sub-branch">
+                        <strong>MaxPool:</strong> 最大池化<br>
+                        降维减参，保留重要特征
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细的数据流程解释 -->
+        <h2>📊 数据流动过程详解</h2>
+        <div class="data-flow">
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>输入阶段:</strong> 原始图像 (224×224×3)
+                <br><small>一张彩色手势图片，包含红、绿、蓝三个颜色通道</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>第一次卷积:</strong> 3→32通道 (224×224×32)
+                <br><small>使用32个3×3卷积核扫描图像，检测边缘、线条等基础特征</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>第一次池化:</strong> 尺寸减半 (112×112×32)
+                <br><small>使用2×2最大池化，保留最重要的特征，减少计算量</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">4</span>
+                <strong>第二次卷积:</strong> 32→64通道 (112×112×64)
+                <br><small>使用64个卷积核，组合基础特征形成更复杂的形状</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">5</span>
+                <strong>第二次池化:</strong> 继续降维 (56×56×64)
+                <br><small>进一步压缩空间信息，聚焦重要特征</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">6</span>
+                <strong>第三次卷积:</strong> 64→128通道 (56×56×128)
+                <br><small>提取更高级的特征，如手指形状、手掌轮廓等</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">7</span>
+                <strong>第三次池化:</strong> 空间压缩 (28×28×128)
+                <br><small>继续减少空间维度，突出重要模式</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">8</span>
+                <strong>第四次卷积:</strong> 128→256通道 (28×28×256)
+                <br><small>提取最高级的语义特征，理解整个手势的含义</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">9</span>
+                <strong>最后池化:</strong> 最终压缩 (14×14×256)
+                <br><small>得到最紧凑的特征表示</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">10</span>
+                <strong>展平操作:</strong> 4D→2D (50176,)
+                <br><small>将多维特征图展平成一维向量，准备进入分类器</small>
+            </div>
+            
+            <div class="step">
+                <span class="step-number">11</span>
+                <strong>全连接分类:</strong> 50176→512→256→128→3
+                <br><small>通过多层神经网络，最终输出三个类别的概率分数</small>
+            </div>
+        </div>
+
+        <!-- 参数详解表格 -->
+        <h2>📋 网络参数详细说明</h2>
+        <table class="param-table">
+            <thead>
+                <tr>
+                    <th>层名称</th>
+                    <th>输入尺寸</th>
+                    <th>输出尺寸</th>
+                    <th>参数数量</th>
+                    <th>主要作用</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Conv1</strong></td>
+                    <td>(3, 224, 224)</td>
+                    <td>(32, 224, 224)</td>
+                    <td>896</td>
+                    <td>检测基础边缘和纹理</td>
+                </tr>
+                <tr>
+                    <td><strong>Pool1</strong></td>
+                    <td>(32, 224, 224)</td>
+                    <td>(32, 112, 112)</td>
+                    <td>0</td>
+                    <td>降采样，减少计算量</td>
+                </tr>
+                <tr>
+                    <td><strong>Conv2</strong></td>
+                    <td>(32, 112, 112)</td>
+                    <td>(64, 112, 112)</td>
+                    <td>18,496</td>
+                    <td>组合边缘形成简单形状</td>
+                </tr>
+                <tr>
+                    <td><strong>Pool2</strong></td>
+                    <td>(64, 112, 112)</td>
+                    <td>(64, 56, 56)</td>
+                    <td>0</td>
+                    <td>进一步降采样</td>
+                </tr>
+                <tr>
+                    <td><strong>Conv3</strong></td>
+                    <td>(64, 56, 56)</td>
+                    <td>(128, 56, 56)</td>
+                    <td>73,856</td>
+                    <td>识别复杂模式和结构</td>
+                </tr>
+                <tr>
+                    <td><strong>Pool3</strong></td>
+                    <td>(128, 56, 56)</td>
+                    <td>(128, 28, 28)</td>
+                    <td>0</td>
+                    <td>空间信息压缩</td>
+                </tr>
+                <tr>
+                    <td><strong>Conv4</strong></td>
+                    <td>(128, 28, 28)</td>
+                    <td>(256, 28, 28)</td>
+                    <td>295,168</td>
+                    <td>提取高级语义特征</td>
+                </tr>
+                <tr>
+                    <td><strong>Pool4</strong></td>
+                    <td>(256, 28, 28)</td>
+                    <td>(256, 14, 14)</td>
+                    <td>0</td>
+                    <td>最终空间压缩</td>
+                </tr>
+                <tr>
+                    <td><strong>Flatten</strong></td>
+                    <td>(256, 14, 14)</td>
+                    <td>(50176,)</td>
+                    <td>0</td>
+                    <td>展平为一维向量</td>
+                </tr>
+                <tr>
+                    <td><strong>FC1</strong></td>
+                    <td>(50176,)</td>
+                    <td>(512,)</td>
+                    <td>25,691,648</td>
+                    <td>特征整合和抽象</td>
+                </tr>
+                <tr>
+                    <td><strong>FC2</strong></td>
+                    <td>(512,)</td>
+                    <td>(256,)</td>
+                    <td>131,328</td>
+                    <td>特征压缩和优化</td>
+                </tr>
+                <tr>
+                    <td><strong>FC3</strong></td>
+                    <td>(256,)</td>
+                    <td>(128,)</td>
+                    <td>32,896</td>
+                    <td>特征精炼</td>
+                </tr>
+                <tr>
+                    <td><strong>FC4</strong></td>
+                    <td>(128,)</td>
+                    <td>(3,)</td>
+                    <td>387</td>
+                    <td>最终分类输出</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- 关键概念解释 -->
+        <h2>🔑 关键概念深度解释</h2>
+        
+        <h3>🎯 卷积操作 (Convolution)</h3>
+        <div class="highlight-box">
+            <strong>简单理解:</strong> 就像用一个小窗口在图片上滑动，每滑到一个位置就计算一个数值。
+            <br><br>
+            <strong>具体过程:</strong>
+            <br>1. 拿一个3×3的小窗口(卷积核)
+            <br>2. 从图片左上角开始，窗口覆盖9个像素
+            <br>3. 将这9个像素值与窗口的9个权重相乘再相加
+            <br>4. 得到一个新的像素值
+            <br>5. 窗口向右移动一个像素，重复计算
+            <br>6. 扫描完整张图片后，得到一个新的特征图
+        </div>
+
+        <h3>🏊 池化操作 (Pooling)</h3>
+        <div class="info-box">
+            <strong>最大池化就像"缩略图":</strong>
+            <br>• 把一个2×2的区域用一个像素代表
+            <br>• 选择这4个像素中最大的那个
+            <br>• 这样图片尺寸变为原来的一半
+            <br>• 但保留了最重要的特征信息
+        </div>
+
+        <h3>🧠 批量归一化 (BatchNorm)</h3>
+        <div class="warning-box">
+            <strong>为什么需要BatchNorm?</strong>
+            <br>• 就像考试前老师告诉你题目难度，让你心理有底
+            <br>• 它告诉每一层网络，输入数据的"正常范围"是什么
+            <br>• 这样网络训练起来更稳定，收敛更快
+            <br>• 公式: (输入 - 平均值) / 标准差
+        </div>
+
+        <h3>🎲 Dropout正则化</h3>
+        <div class="info-box">
+            <strong>Dropout就像"考试技巧":</strong>
+            <br>• 训练时随机"屏蔽"一些神经元(让它们输出0)
+            <br>• 就像你不能依赖某一个同学的答案
+            <br>• 强迫网络学会用不同的特征组合来识别
+            <br>• 防止网络"死记硬背"，提高泛化能力
+        </div>
+
+        <!-- 实际代码示例 -->
+        <h2>💻 核心代码逐行解释</h2>
+        
+        <h3>卷积块的完整执行过程:</h3>
+        <div class="code-block">
+<span class="code-comment"># 第一个卷积块的完整处理流程</span>
+x = self.conv1(x)           <span class="code-comment"># 卷积: (3,224,224) → (32,224,224)</span>
+x = self.bn1(x)             <span class="code-comment"># 批归一化: 标准化特征图</span>
+x = torch.relu(x)           <span class="code-comment"># ReLU激活: 去除负值，增加非线性</span>
+x = self.pool1(x)           <span class="code-comment"># 最大池化: (32,224,224) → (32,112,112)</span>
+x = self.dropout1(x)        <span class="code-comment"># Dropout: 随机屏蔽25%的特征图</span>
+
+<span class="code-comment"># 简化写法 (在代码中实际使用的)</span>
+x = self.pool1(torch.relu(self.bn1(self.conv1(x))))
+x = self.dropout1(x)
+        </div>
+
+        <h3>全连接层的处理过程:</h3>
+        <div class="code-block">
+<span class="code-comment"># 展平操作: 4D张量变成2D</span>
+x = x.view(-1, 256 * 14 * 14)    <span class="code-comment"># (batch, 256, 14, 14) → (batch, 50176)</span>
+
+<span class="code-comment"># 第一个全连接层</span>
+x = self.fc1(x)                   <span class="code-comment"># 线性变换: (50176,) → (512,)</span>
+x = self.bn_fc1(x)                <span class="code-comment"># 批归一化</span>
+x = torch.relu(x)                 <span class="code-comment"># ReLU激活</span>
+x = self.dropout5(x)              <span class="code-comment"># Dropout: 屏蔽50%神经元</span>
+        </div>
+
+        <!-- 参数计算解释 -->
+        <h2>🧮 参数数量计算详解</h2>
+        <div class="highlight-box">
+            <h4>卷积层参数计算公式:</h4>
+            <strong>参数数量 = (卷积核高 × 卷积核宽 × 输入通道数 + 1) × 输出通道数</strong>
+            <br><br>
+            <strong>例如Conv1层:</strong>
+            <br>• 卷积核尺寸: 3×3
+            <br>• 输入通道: 3 (RGB)
+            <br>• 输出通道: 32
+            <br>• 参数数量 = (3×3×3 + 1) × 32 = 28 × 32 = 896
+            <br>• "+1"是偏置项(bias)
+        </div>
+
+        <div class="info-box">
+            <h4>全连接层参数计算:</h4>
+            <strong>参数数量 = (输入神经元数量 + 1) × 输出神经元数量</strong>
+            <br><br>
+            <strong>例如FC1层:</strong>
+            <br>• 输入: 256×14×14 = 50176
+            <br>• 输出: 512
+            <br>• 参数数量 = (50176 + 1) × 512 = 25,691,648
+            <br>• 这是整个网络参数最多的一层!
+        </div>
+
+        <!-- 总结 -->
+        <h2>🎯 总结: 网络的"学习"过程</h2>
+        <div class="highlight-box">
+            <h4>整个CNN网络就像一个"特征提取→分类决策"的流水线:</h4>
+            <br>
+            <strong>🔍 特征提取阶段 (卷积层):</strong>
+            <br>• 第1层: "这里有条线"
+            <br>• 第2层: "这些线组成了一个角"  
+            <br>• 第3层: "这个角可能是手指"
+            <br>• 第4层: "这些手指组成了一个手势"
+            <br><br>
+            <strong>🎯 分类决策阶段 (全连接层):</strong>
+            <br>• FC1: "综合所有特征信息"
+            <br>• FC2: "去除不重要的特征"
+            <br>• FC3: "聚焦最关键的特征"
+            <br>• 输出: "这是石头/剪刀/布"
+            <br><br>
+            <strong>🚀 训练过程:</strong>
+            <br>• 给网络看大量标注好的手势图片
+            <br>• 网络猜测每张图片是什么手势
+            <br>• 根据猜对猜错调整所有参数
+            <br>• 重复这个过程直到网络变得很准确
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+            <h3>🎉 恭喜你!</h3>
+            <p>现在你已经完全理解了这个深层CNN网络的结构和工作原理!</p>
+            <p>这个网络有 <strong>26,244,035</strong> 个参数，能够自动学习识别手势的特征!</p>
+        </div>
+    </div>
+</body>
+</html>
